@@ -56,11 +56,18 @@ You need macOS 13 or later.
 ```
 git clone https://github.com/<your-username>/tidy-mac.git
 cd tidy-mac
-swift run TidyMac
+swift build
+.build/debug/TidyMac
 ```
 
-That builds and launches the app; you'll see its icon appear in the menu bar. Click it,
-add a folder to watch under Settings, and try "Organize Now" to see a preview before
+Build first, then launch the binary directly, rather than using `swift run`.
+`swift run` wraps the process in a way that doesn't get along with a long-running
+`NSApplication` menu bar app on every setup; it can sit there with no output and no
+menu bar icon, even though the build succeeded. Running `.build/debug/TidyMac` directly
+is the reliable way to launch it. Once it's running, you'll see its icon appear in the
+menu bar (if your menu bar is full, it might be tucked toward the edge, and note that
+macOS hides the whole menu bar while another app is in full-screen mode). Click it, add
+a folder to watch under Settings, and try "Organize Now" to see a preview before
 anything moves.
 
 If you have full Xcode installed, `open Package.swift` opens the project there instead,
