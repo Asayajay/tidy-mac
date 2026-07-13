@@ -92,6 +92,30 @@ final class MoveUndoerTests: XCTestCase {
         XCTAssertEqual(outcome.failures.first?.reason, .destinationMissing)
     }
 
+    func testUndoRefusesWhenDestinationWasRepurposedAsADirectory() throws {
+        // Found in the second safety review: fileExists doesn't distinguish files from
+        // directories, so without an explicit check, undo would move an entire directory
+        // (and everything in it) back to the original file's path.
+        try TestSupport.writeFile(named: "taxes.pdf", in: tempDir)
+        let logStore = MoveLogStore(fileURL: tempDir.appendingPathComponent("log.json"))
+        let organizer = Organizer(rules: DefaultRules.all)
+        _ = try organizer.run(for: tempDir, mode: .live(operations: LiveFileOperations(), logStore: logStore))
+
+        let destination = tempDir.appendingPathComponent("Documents/PDFs/taxes.pdf")
+        try FileManager.default.removeItem(at: destination)
+        let repurposedDirectory = destination
+        try FileManager.default.createDirectory(at: repurposedDirectory, withIntermediateDirectories: true)
+        try TestSupport.writeFile(named: "unrelated.txt", contents: "unrelated", in: repurposedDirectory)
+
+        let undoer = MoveUndoer(logStore: logStore, operations: LiveFileOperations())
+        let outcome = try undoer.undoLastBatch()
+
+        XCTAssertEqual(outcome.restoredCount, 0)
+        XCTAssertEqual(outcome.failures.first?.reason, .destinationIsNotAFile)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: repurposedDirectory.appendingPathComponent("unrelated.txt").path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: tempDir.appendingPathComponent("taxes.pdf").path))
+    }
+
     func testUndoingNothingThrowsNoBatchToUndo() throws {
         let logStore = MoveLogStore(fileURL: tempDir.appendingPathComponent("log.json"))
         let undoer = MoveUndoer(logStore: logStore, operations: LiveFileOperations())

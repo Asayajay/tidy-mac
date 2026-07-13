@@ -14,6 +14,13 @@ public protocol FileOperationsPerforming {
     func createDirectoryIfNeeded(at url: URL) throws -> [URL]
     func moveItem(from: URL, to: URL) throws
     func fileExists(at url: URL) -> Bool
+    /// True only if `url` exists and is a regular file (not a directory). Undo uses this
+    /// to refuse restoring from a path that used to hold a file but now holds a
+    /// directory someone created there for unrelated reasons -- `fileExists` alone can't
+    /// tell files and directories apart, and moving a whole directory back in place of a
+    /// single logged file would be a much bigger, more surprising change than undo should
+    /// ever make.
+    func isRegularFile(at url: URL) -> Bool
     /// Removes `url` only if it currently exists and is empty. Returns whether it removed it.
     @discardableResult
     func removeDirectoryIfEmpty(at url: URL) -> Bool
@@ -46,6 +53,12 @@ public struct LiveFileOperations: FileOperationsPerforming {
 
     public func fileExists(at url: URL) -> Bool {
         FileManager.default.fileExists(atPath: url.path)
+    }
+
+    public func isRegularFile(at url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return false }
+        return !isDirectory.boolValue
     }
 
     @discardableResult

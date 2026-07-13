@@ -10,6 +10,9 @@ public enum UndoError: Error, Equatable {
 /// still gets undone -- one conflicting file shouldn't block everything else.
 public enum UndoEntryFailure: Equatable {
     case destinationMissing
+    /// The logged destination path exists but is now a directory, not the file that was
+    /// logged (e.g. someone created a folder with that exact name after the move ran).
+    case destinationIsNotAFile
     case sourceOccupied
     case ioError(String)
 }
@@ -71,6 +74,10 @@ public final class MoveUndoer {
 
             guard operations.fileExists(at: destinationURL) else {
                 failures.append((entry, .destinationMissing))
+                continue
+            }
+            guard operations.isRegularFile(at: destinationURL) else {
+                failures.append((entry, .destinationIsNotAFile))
                 continue
             }
             guard !operations.fileExists(at: sourceURL) else {
