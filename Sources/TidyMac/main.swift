@@ -1,1 +1,0 @@
-print("TidyMac placeholder")
