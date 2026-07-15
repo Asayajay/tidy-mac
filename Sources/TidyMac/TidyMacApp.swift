@@ -26,7 +26,10 @@ struct TidyMacApp: App {
             SettingsView()
                 .environmentObject(appState)
         }
-        .windowResizability(.contentSize)
+        // .contentSize locks the window to exactly its content's size, which also
+        // disables resizing and full screen. .contentMinSize uses that size as a floor
+        // instead, so the window can still be dragged larger or made full screen.
+        .windowResizability(.contentMinSize)
 
         Window("TidyMac Preview", id: "preview") {
             PreviewSheet()

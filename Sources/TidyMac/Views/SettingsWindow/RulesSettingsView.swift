@@ -30,7 +30,24 @@ struct RulesSettingsView: View {
                     }
                 }
                 HStack {
-                    Button("Add Rule", action: addRule)
+                    Menu("Add Rule") {
+                        Button("Blank rule (fully custom)") {
+                            addRule(RulePreset.blank())
+                        }
+                        Divider()
+                        Text("Or start from a common one:")
+                        ForEach(RulePreset.all) { preset in
+                            Button {
+                                addRule(preset.makeRule())
+                            } label: {
+                                Text(preset.title)
+                            }
+                            .help(preset.subtitle)
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+
                     Button("Reset to Defaults") {
                         appState.settings.rules = DefaultRules.all
                     }
@@ -63,12 +80,7 @@ struct RulesSettingsView: View {
         )
     }
 
-    private func addRule() {
-        let newRule = FileRule(
-            name: "New Rule",
-            conditions: [MatchCondition(kind: .fileExtension, value: "")],
-            destinationSubpath: "New Folder"
-        )
+    private func addRule(_ newRule: FileRule) {
         appState.settings.rules.append(newRule)
         selectedRuleID = newRule.id
     }

@@ -15,6 +15,6 @@ struct SettingsView: View {
             ActivitySettingsView()
                 .tabItem { Label("Activity", systemImage: "clock.arrow.circlepath") }
         }
-        .frame(width: 560, height: 440)
+        .frame(minWidth: 560, minHeight: 440)
     }
 }
