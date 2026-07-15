@@ -5,7 +5,7 @@ struct TidyMacApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {
-        MenuBarExtra("TidyMac", systemImage: "tray.and.arrow.down") {
+        MenuBarExtra("TidyMac", systemImage: "wand.and.sparkles") {
             MenuBarContentView()
                 .environmentObject(appState)
         }
