@@ -74,45 +74,114 @@ struct RulesSettingsView: View {
     }
 }
 
+/// Deliberately not a `Form`. A `Form`/`Section` on macOS tries to lay its children out
+/// as aligned label/value columns, and that heuristic badly misjudged the Conditions
+/// row here (Picker + TextField + delete button), squeezing the text field down to a
+/// sliver a few points wide -- confirmed on a real machine, its placeholder text
+/// rendered one letter per line. Plain VStack/HStack with explicit widths sidesteps
+/// that heuristic entirely.
 private struct RuleEditorView: View {
     @Binding var rule: FileRule
 
     var body: some View {
-        Form {
-            Section("Rule") {
-                TextField("Name", text: $rule.name)
-                TextField("Destination (relative to watched folder)", text: $rule.destinationSubpath)
-                Picker("Match if", selection: $rule.conditionLogic) {
-                    Text("Any condition matches").tag(FileRule.ConditionLogic.any)
-                    Text("All conditions match").tag(FileRule.ConditionLogic.all)
-                }
-            }
-
-            Section("Conditions") {
-                ForEach($rule.conditions) { $condition in
-                    HStack {
-                        Picker("", selection: $condition.kind) {
-                            Text("Extension is").tag(MatchCondition.Kind.fileExtension)
-                            Text("Name contains").tag(MatchCondition.Kind.filenameContains)
-                            Text("Name starts with").tag(MatchCondition.Kind.filenamePrefix)
-                            Text("Name matches regex").tag(MatchCondition.Kind.filenameRegex)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                GroupBox("Rule") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabeledRow(label: "Name") {
+                            TextField("Rule name", text: $rule.name)
+                                .textFieldStyle(.roundedBorder)
                         }
-                        .labelsHidden()
-                        .frame(width: 150)
-                        TextField("Value", text: $condition.value)
-                        Button(role: .destructive) {
-                            rule.conditions.removeAll { $0.id == condition.id }
-                        } label: {
-                            Image(systemName: "minus.circle")
+                        LabeledRow(label: "Destination") {
+                            TextField("e.g. Documents/PDFs", text: $rule.destinationSubpath)
+                                .textFieldStyle(.roundedBorder)
                         }
-                        .buttonStyle(.borderless)
+                        LabeledRow(label: "Match if") {
+                            Picker("", selection: $rule.conditionLogic) {
+                                Text("Any condition matches").tag(FileRule.ConditionLogic.any)
+                                Text("All conditions match").tag(FileRule.ConditionLogic.all)
+                            }
+                            .labelsHidden()
+                        }
                     }
+                    .padding(10)
                 }
-                Button("Add Condition") {
-                    rule.conditions.append(MatchCondition(kind: .fileExtension, value: ""))
+
+                GroupBox("Conditions") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach($rule.conditions) { $condition in
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 8) {
+                                    Picker("", selection: $condition.kind) {
+                                        Text("Extension is").tag(MatchCondition.Kind.fileExtension)
+                                        Text("Name contains").tag(MatchCondition.Kind.filenameContains)
+                                        Text("Name starts with").tag(MatchCondition.Kind.filenamePrefix)
+                                        Text("Name matches regex").tag(MatchCondition.Kind.filenameRegex)
+                                    }
+                                    .labelsHidden()
+                                    .frame(width: 170)
+
+                                    TextField(condition.kind.placeholder, text: $condition.value)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(minWidth: 100, maxWidth: .infinity)
+
+                                    Button(role: .destructive) {
+                                        rule.conditions.removeAll { $0.id == condition.id }
+                                    } label: {
+                                        Image(systemName: "minus.circle")
+                                    }
+                                    .buttonStyle(.borderless)
+                                }
+                                Text(condition.kind.helpText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.leading, 178)
+                            }
+                        }
+                        Button("Add Condition") {
+                            rule.conditions.append(MatchCondition(kind: .fileExtension, value: ""))
+                        }
+                    }
+                    .padding(10)
                 }
             }
+            .padding()
         }
-        .formStyle(.grouped)
+    }
+}
+
+/// Plain-language example text per condition kind, shown right under the row so
+/// picking "Name matches regex" doesn't leave someone guessing what to type there.
+private extension MatchCondition.Kind {
+    var placeholder: String {
+        switch self {
+        case .fileExtension: return "pdf"
+        case .filenameContains: return "invoice"
+        case .filenamePrefix: return "IMG_"
+        case .filenameRegex: return "^Screen ?Shot .*"
+        }
+    }
+
+    var helpText: String {
+        switch self {
+        case .fileExtension: return "Matches the file's extension, without the dot (e.g. \"pdf\", not \".pdf\")."
+        case .filenameContains: return "Matches if this text appears anywhere in the filename."
+        case .filenamePrefix: return "Matches if the filename starts with this text."
+        case .filenameRegex: return "Advanced: matches using a regular expression against the filename."
+        }
+    }
+}
+
+private struct LabeledRow<Content: View>: View {
+    let label: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(label)
+                .frame(width: 90, alignment: .leading)
+                .foregroundStyle(.secondary)
+            content
+        }
     }
 }
