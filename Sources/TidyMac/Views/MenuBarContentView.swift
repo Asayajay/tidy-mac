@@ -47,7 +47,7 @@ struct MenuBarContentView: View {
                             appState.preview(folder: folder)
                             appState.folderPendingReview = folder
                             openWindow(id: "preview")
-                            NSApp.activate(ignoringOtherApps: true)
+                            WindowFocus.claim(windowTitled: "TidyMac Preview")
                         }
                         .controlSize(.small)
                     }
@@ -75,7 +75,7 @@ struct MenuBarContentView: View {
             HStack {
                 Button("Settings…") {
                     openWindow(id: "settings")
-                    NSApp.activate(ignoringOtherApps: true)
+                    WindowFocus.claim(windowTitled: "TidyMac Settings")
                 }
                 Spacer()
                 Button("Quit") {
