@@ -20,6 +20,11 @@ final class AppState: ObservableObject {
     @Published private(set) var lastFailures: [UUID: [FailedMove]] = [:]
     @Published private(set) var batches: [MoveBatch] = []
     @Published var statusMessage: String = ""
+    /// Set by "Organize Now" to open the preview window for a specific folder. A
+    /// separate Window scene, not a .sheet attached to the menu bar's own popover --
+    /// presenting a sheet from inside a MenuBarExtra(.window) popover corrupted the
+    /// popover's own layout (content clipped on both edges), confirmed on a real machine.
+    @Published var folderPendingReview: WatchedFolder?
 
     private let logStore: MoveLogStore
     private var watcher: DirectoryWatcher?

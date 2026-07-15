@@ -15,6 +15,16 @@ enum OrganizeMode: String, Codable, CaseIterable, Identifiable {
         case .auto: return "Auto-Organize (moves files)"
         }
     }
+
+    /// Used in tight spaces like the menu bar's segmented control, which won't compress
+    /// below a segment's natural content width -- long labels there forced the control
+    /// wider than the popover's fixed frame and corrupted the whole popover's layout.
+    var shortTitle: String {
+        switch self {
+        case .dryRun: return "Dry Run"
+        case .auto: return "Auto-Organize"
+        }
+    }
 }
 
 /// How often watched folders get checked.

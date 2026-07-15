@@ -16,5 +16,11 @@ struct TidyMacApp: App {
                 .environmentObject(appState)
         }
         .windowResizability(.contentSize)
+
+        Window("TidyMac Preview", id: "preview") {
+            PreviewSheet()
+                .environmentObject(appState)
+        }
+        .windowResizability(.contentSize)
     }
 }

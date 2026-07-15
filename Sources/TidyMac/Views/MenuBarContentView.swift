@@ -5,7 +5,6 @@ import TidyMacCore
 struct MenuBarContentView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.openWindow) private var openWindow
-    @State private var folderPendingReview: WatchedFolder?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -14,7 +13,7 @@ struct MenuBarContentView: View {
 
             Picker("", selection: $appState.settings.mode) {
                 ForEach(OrganizeMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+                    Text(mode.shortTitle).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
@@ -46,7 +45,9 @@ struct MenuBarContentView: View {
                         Spacer()
                         Button("Organize Now") {
                             appState.preview(folder: folder)
-                            folderPendingReview = folder
+                            appState.folderPendingReview = folder
+                            openWindow(id: "preview")
+                            NSApp.activate(ignoringOtherApps: true)
                         }
                         .controlSize(.small)
                     }
@@ -84,9 +85,5 @@ struct MenuBarContentView: View {
         }
         .padding(14)
         .frame(width: 300)
-        .sheet(item: $folderPendingReview) { folder in
-            PreviewSheet(folder: folder)
-                .environmentObject(appState)
-        }
     }
 }
