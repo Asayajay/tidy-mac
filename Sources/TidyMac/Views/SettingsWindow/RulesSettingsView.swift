@@ -105,8 +105,13 @@ private struct RuleEditorView: View {
                                 .textFieldStyle(.roundedBorder)
                         }
                         LabeledRow(label: "Destination") {
-                            TextField("e.g. Documents/PDFs", text: $rule.destinationSubpath)
-                                .textFieldStyle(.roundedBorder)
+                            VStack(alignment: .leading, spacing: 3) {
+                                TextField("e.g. Documents/PDFs", text: $rule.destinationSubpath)
+                                    .textFieldStyle(.roundedBorder)
+                                Text("Relative (e.g. \"Screenshots\") puts it inside whichever watched folder the file came from. Start with \"~/\" or \"/\" (e.g. \"~/Pictures/Screenshots\") to send matches from every watched folder to one shared place instead.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         LabeledRow(label: "Match if") {
                             Picker("", selection: $rule.conditionLogic) {

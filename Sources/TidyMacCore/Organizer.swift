@@ -59,8 +59,7 @@ public final class Organizer {
                     skipped.append(SkippedItem(source: candidate.url, reason: .noRuleMatched))
                     continue
                 }
-                let sanitizedSubpath = Self.sanitizedRelativePath(rule.destinationSubpath)
-                let destinationDirectory = root.appendingPathComponent(sanitizedSubpath, isDirectory: true)
+                let destinationDirectory = Self.resolvedDestinationDirectory(for: rule, root: root)
                 let preferred = destinationDirectory.appendingPathComponent(candidate.filename)
                 let destination = Self.resolveNonCollidingPath(preferred: preferred, alsoReserved: reservedDestinationPaths)
                 reservedDestinationPaths.insert(destination.path)
@@ -82,6 +81,30 @@ public final class Organizer {
             .split(separator: "/")
             .filter { $0 != ".." && $0 != "." && !$0.isEmpty }
             .joined(separator: "/")
+    }
+
+    /// Resolves a rule's destination against a watched folder's root.
+    ///
+    /// A destination starting with "~" or "/" is a deliberate, user-authored absolute
+    /// path -- a shared destination outside any single watched folder, e.g. so a
+    /// "Screenshots" rule can send every screenshot from every watched folder to one
+    /// real `~/Pictures/Screenshots` instead of each watched folder growing its own
+    /// separate `Screenshots` subfolder. This is not the same thing the `..`
+    /// sanitization guards against: that guards against a *relative* path silently
+    /// escaping the watched root the user didn't intend; this is the user explicitly
+    /// asking for an absolute location, in full view, in the rule they wrote themselves.
+    /// Anything else is treated as relative and still run through the traversal guard.
+    static func resolvedDestinationDirectory(for rule: FileRule, root: URL) -> URL {
+        let raw = rule.destinationSubpath
+        if raw.hasPrefix("~") {
+            let expanded = (raw as NSString).expandingTildeInPath
+            return URL(fileURLWithPath: expanded, isDirectory: true)
+        }
+        if raw.hasPrefix("/") {
+            return URL(fileURLWithPath: raw, isDirectory: true)
+        }
+        let sanitizedSubpath = sanitizedRelativePath(raw)
+        return root.appendingPathComponent(sanitizedSubpath, isDirectory: true)
     }
 
     /// Finds a destination path that collides with neither what's already on disk nor

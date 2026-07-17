@@ -53,20 +53,27 @@ final class PathTraversalSafetyTests: XCTestCase {
         XCTAssertTrue(movedSomewhereInsideRoot, "file must still be found somewhere inside the watched root")
     }
 
-    func testAbsolutePathLikeDestinationStaysContainedInRoot() throws {
-        let file = try TestSupport.writeFile(named: "evil.pdf", in: tempDir)
+    /// An absolute destination is a deliberate, visible feature (see
+    /// `SharedDestinationTests`), not the same thing the ".." guard exists for: the user
+    /// typed a path starting with "/" or "~" themselves, and the exact resolved
+    /// destination is always shown in the dry-run preview before anything moves. So
+    /// unlike a relative ".." escape, this is expected to actually go where it says.
+    func testAbsolutePathDestinationGenuinelyGoesToThatAbsoluteLocation() throws {
+        let absoluteTarget = try TestSupport.makeTempDirectory(function: "explicitAbsoluteTarget")
+        defer { try? FileManager.default.removeItem(at: absoluteTarget) }
+
+        let file = try TestSupport.writeFile(named: "report.pdf", in: tempDir)
         let rule = FileRule(
-            name: "Absolute-looking",
+            name: "Explicit absolute destination",
             conditions: [MatchCondition(kind: .fileExtension, value: "pdf")],
-            destinationSubpath: "/etc/evil"
+            destinationSubpath: absoluteTarget.path
         )
         let logStore = MoveLogStore(fileURL: tempDir.appendingPathComponent("log.json"))
         let organizer = Organizer(rules: [rule])
 
         _ = try organizer.run(for: tempDir, mode: .live(operations: LiveFileOperations(), logStore: logStore))
 
-        XCTAssertFalse(FileManager.default.fileExists(atPath: "/etc/evil/evil.pdf"))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: tempDir.appendingPathComponent("etc/evil/evil.pdf").path))
-        _ = file
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: absoluteTarget.appendingPathComponent("report.pdf").path))
     }
 }
