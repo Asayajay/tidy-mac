@@ -27,23 +27,28 @@ public struct MoveBatch: Codable, Equatable, Identifiable {
     /// "Screenshots" / "Documents/PDFs" folders behind -- but it never removes a
     /// directory the user already had, since that never goes in this list.
     public var createdDirectories: [String]
+    /// Folders removed by this batch because they were empty (see `EmptyFolderRemover`).
+    /// Undo recreates these -- safe and lossless, since nothing was ever in them.
+    public var removedEmptyFolders: [String]
 
     public init(
         id: UUID = UUID(),
         timestamp: Date,
         entries: [MoveLogEntry],
         undone: Bool = false,
-        createdDirectories: [String] = []
+        createdDirectories: [String] = [],
+        removedEmptyFolders: [String] = []
     ) {
         self.id = id
         self.timestamp = timestamp
         self.entries = entries
         self.undone = undone
         self.createdDirectories = createdDirectories
+        self.removedEmptyFolders = removedEmptyFolders
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, timestamp, entries, undone, createdDirectories
+        case id, timestamp, entries, undone, createdDirectories, removedEmptyFolders
     }
 
     public init(from decoder: Decoder) throws {
@@ -53,5 +58,6 @@ public struct MoveBatch: Codable, Equatable, Identifiable {
         entries = try container.decode([MoveLogEntry].self, forKey: .entries)
         undone = try container.decode(Bool.self, forKey: .undone)
         createdDirectories = try container.decodeIfPresent([String].self, forKey: .createdDirectories) ?? []
+        removedEmptyFolders = try container.decodeIfPresent([String].self, forKey: .removedEmptyFolders) ?? []
     }
 }

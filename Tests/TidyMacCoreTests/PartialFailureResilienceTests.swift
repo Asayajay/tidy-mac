@@ -33,6 +33,10 @@ private final class FlakyFileOperations: FileOperationsPerforming {
     func removeDirectoryIfEmpty(at url: URL) -> Bool {
         live.removeDirectoryIfEmpty(at: url)
     }
+
+    func removeIfEmptyIgnoringDSStore(at url: URL) -> Bool {
+        live.removeIfEmptyIgnoringDSStore(at: url)
+    }
 }
 
 /// This is the fix for a real bug found in the second safety review: `execute` used to

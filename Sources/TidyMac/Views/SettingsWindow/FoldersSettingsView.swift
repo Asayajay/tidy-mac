@@ -21,6 +21,10 @@ struct FoldersSettingsView: View {
             }
         }
         .padding()
+        .sheet(item: $appState.folderForEmptyFolderReview) { _ in
+            EmptyFolderReviewView()
+                .environmentObject(appState)
+        }
     }
 
     private func addFolder() {
@@ -68,6 +72,11 @@ private struct FolderRow: View {
             Toggle("Also clean up generic-looking subfolders (e.g. \"New Folder\")", isOn: folderBinding.scanSettings.includeGenericSubfolders)
                 .font(.caption)
                 .padding(.leading, 24)
+            Button("Clean Up Empty Folders…") {
+                appState.previewEmptyFolders(for: folder)
+            }
+            .controlSize(.small)
+            .padding(.leading, 24)
         }
         .padding(.vertical, 4)
     }

@@ -25,6 +25,9 @@ final class AppState: ObservableObject {
     /// presenting a sheet from inside a MenuBarExtra(.window) popover corrupted the
     /// popover's own layout (content clipped on both edges), confirmed on a real machine.
     @Published var folderPendingReview: WatchedFolder?
+    /// Set by "Clean Up Empty Folders" to open the review sheet for a specific folder.
+    @Published var folderForEmptyFolderReview: WatchedFolder?
+    @Published private(set) var emptyFolderCandidates: [URL] = []
 
     private let logStore: MoveLogStore
     private var watcher: DirectoryWatcher?
@@ -135,6 +138,30 @@ final class AppState: ObservableObject {
 
     var canUndoSomething: Bool {
         batches.contains { !$0.undone }
+    }
+
+    // MARK: - Empty folder cleanup
+
+    /// Scans and opens the review sheet. Nothing is deleted here -- same "show it,
+    /// then approve it" shape as organizing.
+    func previewEmptyFolders(for folder: WatchedFolder) {
+        let scanner = EmptyFolderScanner()
+        emptyFolderCandidates = (try? scanner.findEmptyFolders(in: folder.url)) ?? []
+        folderForEmptyFolderReview = folder
+    }
+
+    /// Removes exactly the folders passed in (the ones the user left checked in the
+    /// review sheet), logging the batch so it shows up in Activity and can be undone.
+    func removeEmptyFolders(_ folders: [URL]) {
+        let remover = EmptyFolderRemover(logStore: logStore)
+        guard let result = try? remover.remove(folders, operations: LiveFileOperations()) else {
+            statusMessage = "Failed to remove empty folders"
+            return
+        }
+        statusMessage = result.skipped.isEmpty
+            ? "Removed \(result.removedCount) empty folder\(result.removedCount == 1 ? "" : "s")"
+            : "Removed \(result.removedCount), \(result.skipped.count) no longer empty"
+        refreshBatches()
     }
 
     private func refreshBatches() {

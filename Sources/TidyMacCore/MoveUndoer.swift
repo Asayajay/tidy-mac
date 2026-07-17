@@ -21,10 +21,14 @@ public struct UndoOutcome {
     public let batchID: UUID
     public let restoredCount: Int
     public let failures: [(entry: MoveLogEntry, reason: UndoEntryFailure)]
+    /// Empty folders recreated because this batch had removed them. Always lossless --
+    /// the folder was verified empty before it was ever removed.
+    public let restoredFolderCount: Int
 
     public static func == (lhs: UndoOutcome, rhs: UndoOutcome) -> Bool {
         lhs.batchID == rhs.batchID
             && lhs.restoredCount == rhs.restoredCount
+            && lhs.restoredFolderCount == rhs.restoredFolderCount
             && lhs.failures.map(\.entry) == rhs.failures.map(\.entry)
             && lhs.failures.map(\.reason) == rhs.failures.map(\.reason)
     }
@@ -100,7 +104,19 @@ public final class MoveUndoer {
             operations.removeDirectoryIfEmpty(at: URL(fileURLWithPath: path))
         }
 
+        // Recreate folders this batch removed for being empty. Skipped, not overwritten,
+        // if something now occupies that path -- same "never clobber" rule as everything
+        // else undo does.
+        var restoredFolders = 0
+        for path in batch.removedEmptyFolders {
+            let url = URL(fileURLWithPath: path)
+            guard !operations.fileExists(at: url) else { continue }
+            if (try? operations.createDirectoryIfNeeded(at: url)) != nil, operations.fileExists(at: url) {
+                restoredFolders += 1
+            }
+        }
+
         try logStore.markUndone(batchID: batch.id)
-        return UndoOutcome(batchID: batch.id, restoredCount: restored, failures: failures)
+        return UndoOutcome(batchID: batch.id, restoredCount: restored, failures: failures, restoredFolderCount: restoredFolders)
     }
 }

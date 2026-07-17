@@ -24,6 +24,12 @@ public protocol FileOperationsPerforming {
     /// Removes `url` only if it currently exists and is empty. Returns whether it removed it.
     @discardableResult
     func removeDirectoryIfEmpty(at url: URL) -> Bool
+    /// Removes `url` only if, after ignoring a stray ".DS_Store", it has nothing else in
+    /// it. Re-checks this itself right before removing, so a file that appeared in the
+    /// moment between a preview and this call is never swept away along with the folder.
+    /// Returns whether it removed it.
+    @discardableResult
+    func removeIfEmptyIgnoringDSStore(at url: URL) -> Bool
 }
 
 public struct LiveFileOperations: FileOperationsPerforming {
@@ -69,6 +75,22 @@ public struct LiveFileOperations: FileOperationsPerforming {
         }
         guard let contents = try? FileManager.default.contentsOfDirectory(atPath: url.path), contents.isEmpty else {
             return false
+        }
+        return (try? FileManager.default.removeItem(at: url)) != nil
+    }
+
+    @discardableResult
+    public func removeIfEmptyIgnoringDSStore(at url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return false
+        }
+        guard let contents = try? FileManager.default.contentsOfDirectory(atPath: url.path),
+              contents.allSatisfy({ EmptyFolderScanner.ignorableFilenames.contains($0) }) else {
+            return false
+        }
+        if contents.contains(".DS_Store") {
+            try? FileManager.default.removeItem(at: url.appendingPathComponent(".DS_Store"))
         }
         return (try? FileManager.default.removeItem(at: url)) != nil
     }
