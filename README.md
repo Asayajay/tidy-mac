@@ -39,9 +39,12 @@ undone.
 already exists, TidyMac renames the incoming file instead ("report (1).pdf"), it never
 clobbers what's already there.
 
-**A rule can't send a file outside the folder it came from.** Destination paths are
-sanitized against `..` and absolute-looking paths before they're used, so even a typo'd
-or copy-pasted rule can't move something out of the watched folder.
+**A rule can't accidentally send a file somewhere you didn't intend.** A relative
+destination (the default, e.g. `Screenshots`) is sanitized against `..` before it's used,
+so even a typo'd or copy-pasted rule can't quietly move something out of the watched
+folder. Writing an absolute destination (starting with `~/` or `/`) is the one deliberate
+exception -- see "shared destinations" below -- and its exact resolved path is always
+shown in the dry-run preview before anything moves, so there's nothing hidden about it.
 
 None of this is a promise that nothing can ever go wrong. Undo depends on the log file
 being intact, and the "is this file currently open" check is best-effort (macOS doesn't
@@ -112,9 +115,10 @@ Open Settings → Rules. A rule has:
 - One or more conditions: file extension, filename contains, filename starts with, or a
   regular expression against the filename.
 - Whether it needs *any* of its conditions to match, or *all* of them.
-- A destination, as a path relative to whichever folder is being watched (so
-  `Documents/PDFs` means "the Documents/PDFs folder inside whichever watched folder this
-  file is in", not a single fixed folder).
+- A destination, either relative to whichever folder is being watched (`Documents/PDFs`
+  means "the Documents/PDFs folder inside whichever watched folder this file is in," not
+  a single fixed folder) or, starting with `~/` or `/`, an absolute shared destination --
+  see below.
 
 Rules are checked top to bottom, and the first enabled rule that matches wins. That's the
 whole conflict-resolution story: if a screenshot is also technically a PNG, whichever
@@ -122,6 +126,19 @@ rule is higher in the list is the one that gets it. This is why the built-in Scr
 rule is listed above the built-in Images rule. Drag rules in the list to reorder them,
 toggle the checkbox to disable one without deleting it, and "Reset to Defaults" if you
 want the original set back.
+
+"Add Rule" also offers a handful of common starting points (invoices, RAW photos, screen
+recordings, ebooks, fonts, disk images, design files, data files, torrents) that pre-fill
+a sensible name/destination/conditions -- picking one just saves typing, it's still a
+completely normal, fully editable rule afterward, not a locked-in template.
+
+### Shared destinations
+
+If you watch more than one folder, a relative destination means each watched folder
+grows its own separate subfolder for that rule -- two watched folders both get their own
+`Screenshots` folder, for instance. Writing an absolute destination instead, like
+`~/Pictures/Screenshots`, sends matches from *every* watched folder to that one real
+folder, so they don't end up scattered across each watched location.
 
 ## How it decides where things go, out of the box
 
@@ -153,6 +170,18 @@ trigger only refreshes the preview; in auto-organize, it actually moves files. T
 "Organize Now" button always shows you a preview with a "Move These Files" button first,
 regardless of the global mode, since that's a direct request to look at one folder right
 now.
+
+## Cleaning up empty folders
+
+Settings → Folders has a "Clean Up Empty Folders…" button per watched folder. It scans
+that folder's direct subfolders for ones with nothing meaningful in them (a lone
+`.DS_Store` still counts as empty) and shows you the list before removing anything --
+uncheck any you want to keep. This is a delete, not a move, so it gets the same
+re-verify-right-before-touching-it treatment as everything else: if something gets added
+to a folder between the preview and your click, that folder is left alone. It's logged
+and undoable exactly like a move, which is safe here specifically because the folder was
+already verified empty before it was ever removed, so undoing it back into existence
+loses nothing.
 
 ## What this doesn't try to do
 
